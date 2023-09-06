@@ -1,29 +1,26 @@
 import binascii
 
+def join_64bits(text):
+    crypted_text = 0
+    for i in reversed(range(len(text))):
+        crypted_text |= text[i]
+        if i != 0:
+            crypted_text = crypted_text << 64
+    return crypted_text
 
 def hexToUtf8(text):
-    '''
-    Преобразовывает текст из формата HEX в UTF-8
-    :param text: строка с текстом, который необходимо преобразовать
-    :return: преобразованная в UTF-8 строка
-    '''
     text = binascii.unhexlify(text).decode('utf8')
     text = text.replace('\x00', '')
     return text
 
 
 def utf8ToHex(text):
-    '''
-    Преобразовывает текст из формата UTF-8 в HEX
-    :param text: строка с текстом, который необходимо преобразовать
-    :return: преобразованная в HEX строка
-    '''
     text = binascii.hexlify(text.encode('utf8')).decode('utf8')
     return text
 
 
 def intToHex(int):
-    return hexToUtf8(hex(int)[2:])
+    return hex(int)[2:]
 
 
 def file_read(path):
@@ -37,38 +34,8 @@ def file_write(path, text):
         print(text, file=f)
 
 
-def int_to_bin(int_num, length=8):
-    bin_num = bin(int_num)[2:]
-    while len(bin_num) < length:
-        bin_num = "0" + bin_num
-    return bin_num
-
-
-def split_bits_to_bits(text_bin, lg):
-    list_bits = []
-    while len(text_bin) > 0:
-        list_bits.append(text_bin[:lg])
-        text_bin = text_bin[lg:]
-    return list_bits
-
-
-def askii_to_bin(string):
-    res = ""
-    string = string.encode()
-    for i in string:
-        res += int_to_bin(i)
-    return res
-
-
-def int_to_askii(text):
-    symbols = [(text >> (8 * i)) & 0xFF for i in range(len(hex(text)) // 2)]
-    str = ""
-    for i in symbols:
-        str += bytes([i]).decode()
-    return str[::-1]
-
-
 def feistel_cipher_round(N, key):
+    # TODO: Maybe change sbox
     sbox = (
         (4, 10, 9, 2, 13, 8, 0, 14, 6, 11, 1, 12, 7, 15, 5, 3),
         (14, 11, 4, 12, 6, 13, 15, 10, 2, 3, 8, 1, 0, 7, 5, 9),
@@ -79,7 +46,7 @@ def feistel_cipher_round(N, key):
         (13, 11, 4, 1, 3, 15, 5, 9, 0, 10, 14, 7, 6, 8, 2, 12),
         (1, 15, 13, 0, 5, 7, 10, 4, 9, 2, 3, 14, 6, 11, 8, 12),
     )
-    temp = N ^ key  # складываем по модулю
+    temp = N ^ key
     output = 0
     for i in range(8):
         output |= ((sbox[i][(temp >> (4 * i)) & 0b1111]) << (4 * i))

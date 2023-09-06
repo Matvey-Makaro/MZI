@@ -1,15 +1,5 @@
 from lib import *
 
-
-def join_64bits(text):
-    crypted_text = 0
-    for i in reversed(range(len(text))):
-        crypted_text |= text[i]
-        if i != 0:
-            crypted_text = crypted_text << 64
-    return crypted_text
-
-
 def GOST_28147_89_ECB(text, keys, mode):
     text = [feistel_cipher(i, keys, mode) for i in text]
     crypted_text = join_64bits(text)
@@ -18,45 +8,24 @@ def GOST_28147_89_ECB(text, keys, mode):
 def GOST_28147_89_GUM(text, key, keys, mode):
     result = []
 
-    if mode == "e":
-        iv = 0x71EF0B1F3BE0394F
-        iv = GOST_28147_89(iv, key, "e")
+    iv = 0x71EF0B1F3BE0394F
+    iv = GOST_28147_89(iv, key, "e")
+    
+    C1 = 0x1010101
+    C2 = 0x1010104
 
-        C1 = 0x1010101
-        C2 = 0x1010104
+    N4 = iv >> 32 & 0xFFFFFFFF
+    N3 = iv & 0xFFFFFFFF
+    for t in text:
+        N4 = (N4 + C2) & 0xFFFFFFFF
+        N3 = ((N3 + C1 - 1) % 0xFFFFFFFF) + 1
 
-        N4 = iv >> 32 & 0xFFFFFFFF
-        N3 = iv & 0xFFFFFFFF
-        for t in text:
-            N4 = (N4 + C2) & 0xFFFFFFFF
-            N3 = ((N3 + C1 - 1) % 0xFFFFFFFF) + 1
+        N1 = N3
+        N2 = N4
 
-            N1 = N3
-            N2 = N4
-
-            N = (N2 << 32) | N1
-            gamma = GOST_28147_89(N, key, "e")
-            result.append(t ^ gamma)
-    elif mode == "d":
-        iv = 0x71EF0B1F3BE0394F
-        iv = GOST_28147_89(iv, key, "e")
-
-        C1 = 0x1010101
-        C2 = 0x1010104
-
-        N4 = iv >> 32 & 0xFFFFFFFF
-        N3 = iv & 0xFFFFFFFF
-        result = []
-        for t in text:
-            N4 = (N4 + C2) & 0xFFFFFFFF
-            N3 = ((N3 + C1 - 1) % 0xFFFFFFFF) + 1
-
-            N1 = N3
-            N2 = N4
-
-            N = (N2 << 32) | N1
-            gamma = GOST_28147_89(N, key, "e")
-            result.append(t ^ gamma)
+        N = (N2 << 32) | N1
+        gamma = GOST_28147_89(N, key, "e")
+        result.append(t ^ gamma)
     return join_64bits(result)
 
 def GOST_28147_89(text, key, mode="e", op_mode="ECB", ):
@@ -71,7 +40,7 @@ def GOST_28147_89(text, key, mode="e", op_mode="ECB", ):
     if op_mode == "ECB":
         crypted_text = GOST_28147_89_ECB(text, keys, mode)
         return crypted_text
-    if op_mode == "gum":
+    if op_mode == "GUM":
         crypted_text = GOST_28147_89_GUM(text, key, keys, mode)
         return crypted_text
 
@@ -84,14 +53,14 @@ def main():
     key = 0x287fc759c1ad6b59ac8597159602217e9a03381dcd943c4719dcca000fb2b577
 
     # mode = input("Введите режим работы {ECB, CBC, CFB, OFB}: ")
-    mode = "gum"
+    mode = "GUM"
     print(f"Режим работы {mode}")
 
     crypted_text = GOST_28147_89(text, key, "e", mode)
     encrypted_text = GOST_28147_89(crypted_text, key, "d", mode)
 
     # crypted_text = intToHex(crypted_text)
-    encrypted_text = intToHex(encrypted_text)
+    encrypted_text = hexToUtf8(intToHex(encrypted_text))
 
     print(f"Исходный текст {file_read('EnText.txt')}")
     print(f"Исходный текст в числовом обозначении {text}")
