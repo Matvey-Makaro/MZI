@@ -106,4 +106,9 @@ class Stb:
         c = self.int2list(c)
         d = self.int2list(d)
         return c + a + d + b
-    
+
+    def encrypt(self, data: str) -> str:
+        pass
+
+    def decrypt(self, encrypted_data: str) -> str:
+        pass

@@ -5,6 +5,8 @@ from stb import Stb
 def run_tests():
     test_stb_encr()
     test_stb_decr()
+    test_stb_block()
+    test_stb()
 
 
 def test_stb_encr():
@@ -17,7 +19,39 @@ def test_stb_encr():
 
 def test_stb_decr():
     c = list(binascii.unhexlify('E12BDC1AE28257EC703FCCF095EE8DF1'))
-    key2 = list(binascii.unhexlify('92BD9B1CE5D141015445FBC95E4D0EF2682080AA227D642F2687F93490405511'))
-    decryptor = Stb(key2)
+    key = list(binascii.unhexlify('92BD9B1CE5D141015445FBC95E4D0EF2682080AA227D642F2687F93490405511'))
+    decryptor = Stb(key)
     d1 = binascii.hexlify(bytearray(decryptor.decrypt_block(c)))
     assert d1 == b'0dc5300600cab840b38448e5e993f421'
+
+
+def test_stb_block():
+    data = 'E12BDC1AE28257EC703FCCF095EE8DF1'
+    key_str = '92BD9B1CE5D141015445FBC95E4D0EF2682080AA227D642F2687F93490405511'
+    key = list(binascii.unhexlify(key_str))
+    stb = Stb(key)
+    encrypted_data = stb.encrypt_block(list(binascii.unhexlify(data)))
+    decrypted_data = binascii.hexlify(bytearray(stb.decrypt_block(encrypted_data)))
+    assert decrypted_data == binascii.hexlify(binascii.unhexlify(data))
+
+
+def test_stb():
+    data = "Hello world!"
+    key_str = '92BD9B1CE5D141015445FBC95E4D0EF2682080AA227D642F2687F93490405511'
+    key = list(binascii.unhexlify(key_str))
+    stb = Stb(key)
+
+    encrypted_data = stb.encrypt(data)
+    decrypted_data = stb.decrypt(encrypted_data)
+
+    is_failed = False
+    if type(encrypted_data) != type(str) or len(encrypted_data) == 0:
+        is_failed = True
+    if type(decrypted_data) != type(str) or len(decrypted_data) == 0:
+        is_failed = True
+
+    if is_failed or encrypted_data != decrypted_data:
+        print("test_stb() FAILED!")
+        print("data(", data, ") != encrypted_data(", encrypted_data, ")")
+    else:
+        print("test_stb() ok")
