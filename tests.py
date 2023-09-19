@@ -7,7 +7,8 @@ def run_tests():
     test_stb_encr()
     test_stb_decr()
     test_stb_block()
-    # test_stb_full_blocks()
+    test_stb_short_text()
+    test_stb_full_blocks()
     test_stb()
 
 
@@ -20,6 +21,7 @@ def test_convert():
     print("Text: ", text)
     print("New text:", new_text)
     assert text == new_text
+
 
 def test_stb_encr():
     key = list(binascii.unhexlify('E9DEE72C8F0C0FA62DDB49F46F73964706075316ED247A3739CBA38303A98BF6'))
@@ -47,26 +49,22 @@ def test_stb_block():
     assert decrypted_data == binascii.hexlify(binascii.unhexlify(data))
 
 
-# def test_stb_short_text():
-#     data = "Hello world!"
-#     key_str = '92BD9B1CE5D141015445FBC95E4D0EF2682080AA227D642F2687F93490405511'
-#     key = list(binascii.unhexlify(key_str))
-#     stb = Stb(key)
-#
-#     encrypted_data = stb.encrypt(data)
-#     decrypted_data = stb.decrypt(encrypted_data)
-#
-#     is_failed = False
-#     if type(encrypted_data) != type(str) or len(encrypted_data) == 0:
-#         is_failed = True
-#     if type(decrypted_data) != type(str) or len(decrypted_data) == 0:
-#         is_failed = True
-#
-#     if is_failed or encrypted_data != decrypted_data:
-#         print("test_stb_short_text() FAILED!")
-#         print("data(", data, ") != encrypted_data(", encrypted_data, ")")
-#     else:
-#         print("test_stb_short_text() ok")
+def test_stb_short_text():
+    data = "Hello world!"
+    key_str = '92BD9B1CE5D141015445FBC95E4D0EF2682080AA227D642F2687F93490405511'
+    key = list(binascii.unhexlify(key_str))
+    stb = Stb(key)
+
+    try:
+        encrypted_data = stb.encrypt(data)
+    except RuntimeError:
+        print("test_stb_short_text() ok")
+        return
+
+    decrypted_data = stb.decrypt(encrypted_data)
+
+    print("test_stb_short_text() FAILED!")
+
 
 def test_stb_full_blocks():
     data = "Hello world! How are u? aaaaaaaaaaaaaaaaaaaaaaaa"
