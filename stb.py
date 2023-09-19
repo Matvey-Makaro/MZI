@@ -1,4 +1,5 @@
 import binascii
+import random
 
 class Stb:
     def __init__(self, key):
@@ -63,6 +64,13 @@ class Stb:
         l = self.int2list(x)
         l.reverse()
         return self.list2int(l)
+
+    def xor(self, lhs: list, rhs: list) -> list:
+        result = []
+        size = min(len(lhs), len(rhs))
+        for i in range(size):
+            result.append(lhs[i] ^ rhs[i])
+        return result
 
     # Encrypt input m represented as list of bytes using key represented as list of bytes
     def encrypt_block(self, m):
@@ -139,28 +147,40 @@ class Stb:
             data += b
         return data
 
+    def generate_sync_message(self)->list:
+        sync_message = []
+        for _ in range(self.block_size_in_bytes):
+            sync_message.append(random.randint(0, 255))
+        return sync_message
+
     def encrypt(self, data_to_encrypt: str) -> str:
         data = self.uft8_to_list_of_bytes(data_to_encrypt)  # TODO: Raise exception if data < 128
         print("Data:", data)
         blocks = self.break_into_blocks(data)
+        sync_message = self.generate_sync_message()
+        print("Sync message:", sync_message)
+        # blocks.insert(0, sync_message)
         print("Blocks: ", blocks)
 
         r_size = self.block_size_in_bytes - len(blocks[-1])
         is_last_block_full = r_size == 0
         n = len(blocks) if is_last_block_full else len(blocks) - 2
-        encrypted_blocks = []
+        encrypted_blocks = [sync_message]
         for i in range(0, n):
-            encrypted_blocks.append(self.encrypt_block(blocks[i]))
+            encrypted_blocks.append(self.encrypt_block(
+                self.xor(blocks[i], encrypted_blocks[-1])))
 
         if not is_last_block_full:
-            y_n_and_r = self.encrypt_block(blocks[-2])
+            y_n_and_r = self.encrypt_block(self.xor(blocks[-2], encrypted_blocks[-1]))
             y_n = y_n_and_r[:self.block_size_in_bytes - r_size:]
             r = y_n_and_r[-r_size::]
-            y_n_min_one = self.encrypt_block(blocks[-1] + r)
+            print("r: ", r)
+            y_n_min_one = self.encrypt_block((self.xor(blocks[-1], y_n) + r))
             encrypted_blocks.append(y_n_min_one)
             encrypted_blocks.append(y_n)
 
-        encrypted_data = self.merge_blocks(encrypted_blocks)
+        encrypted_blocks.pop(0)
+        encrypted_data = self.merge_blocks(encrypted_blocks) + sync_message
         encrypted_str = self.encrypted_list_of_bytes_to_utf8(encrypted_data)
         print("Enctypted str:", encrypted_str)
         return encrypted_str
@@ -168,21 +188,23 @@ class Stb:
     def decrypt(self, data_to_encrypt: str) -> str:
         data = self.encrypted_text_to_list_of_bytes(data_to_encrypt)  # TODO: Raise exception if data < 128
         print("Data:", data)
-        blocks = self.break_into_blocks(data)
+        sync_message = data[-self.block_size_in_bytes::]
+        data = data[:-self.block_size_in_bytes]
+        blocks = [sync_message] + self.break_into_blocks(data)
         print("Blocks: ", blocks)
 
         r_size = self.block_size_in_bytes - len(blocks[-1])
         is_last_block_full = r_size == 0
         n = len(blocks) if is_last_block_full else len(blocks) - 2
         decrypted_blocks = []
-        for i in range(0, n):
-            decrypted_blocks.append(self.decrypt_block(blocks[i]))
+        for i in range(1, n):
+            decrypted_blocks.append(self.xor(self.decrypt_block(blocks[i]), blocks[i - 1]))
 
         if not is_last_block_full:
-            y_n_and_r = self.decrypt_block(blocks[-2])
+            y_n_and_r = self.xor(self.decrypt_block(blocks[-2]), blocks[-1] + [0 for _ in range(128 - len(blocks[-1]))])
             y_n = y_n_and_r[:self.block_size_in_bytes - r_size:]
             r = y_n_and_r[-r_size::]
-            y_n_min_one = self.decrypt_block(blocks[-1] + r)
+            y_n_min_one = self.xor(self.decrypt_block(blocks[-1] + r), blocks[-3])
             decrypted_blocks.append(y_n_min_one)
             decrypted_blocks.append(y_n)
 

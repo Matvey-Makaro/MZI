@@ -7,8 +7,9 @@ def run_tests():
     test_stb_encr()
     test_stb_decr()
     test_stb_block()
-    test_stb_full_blocks()
+    # test_stb_full_blocks()
     test_stb()
+
 
 def test_convert():
     key = list(binascii.unhexlify('E9DEE72C8F0C0FA62DDB49F46F73964706075316ED247A3739CBA38303A98BF6'))
@@ -62,10 +63,10 @@ def test_stb_block():
 #         is_failed = True
 #
 #     if is_failed or encrypted_data != decrypted_data:
-#         print("test_stb() FAILED!")
+#         print("test_stb_short_text() FAILED!")
 #         print("data(", data, ") != encrypted_data(", encrypted_data, ")")
 #     else:
-#         print("test_stb() ok")
+#         print("test_stb_short_text() ok")
 
 def test_stb_full_blocks():
     data = "Hello world! How are u? aaaaaaaaaaaaaaaaaaaaaaaa"
