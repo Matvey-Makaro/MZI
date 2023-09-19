@@ -1,3 +1,5 @@
+import binascii
+
 class Stb:
     def __init__(self, key):
         self.H = [0xB1, 0x94, 0xBA, 0xC8, 0x0A, 0x08, 0xF5, 0x3B, 0x36, 0x6D, 0x00, 0x8E, 0x58, 0x4A, 0x5D, 0xE4,
@@ -16,8 +18,9 @@ class Stb:
                   0x7E, 0xCD, 0xA4, 0xD0, 0x15, 0x44, 0xAF, 0x8C, 0xA5, 0x84, 0x50, 0xBF, 0x66, 0xD2, 0xE8, 0x8A,
                   0xA2, 0xD7, 0x46, 0x52, 0x42, 0xA8, 0xDF, 0xB3, 0x69, 0x74, 0xC5, 0x51, 0xEB, 0x23, 0x29, 0x21,
                   0xD4, 0xEF, 0xD9, 0xB4, 0x3A, 0x62, 0x28, 0x75, 0x91, 0x14, 0x10, 0xEA, 0x77, 0x6C, 0xDA, 0x1D]
-        key = [self.list2int(key[i:i+4]) for i in range(0, len(key), 4)]
+        key = [self.list2int(key[i:i + 4]) for i in range(0, len(key), 4)]
         self.k = [key[i % 8] for i in range(56)]
+        self.block_size_in_bytes = 16
 
     # RotHi operation
     def circularleftshift(self, value, k):
@@ -35,12 +38,12 @@ class Stb:
 
     # Modular Substraction
     def modsub(self, x, y):
-        mod = 2**32
+        mod = 2 ** 32
         return (x - y) % mod
 
     # Modular addition
     def modadd(self, *x):
-        mod = 2**32
+        mod = 2 ** 32
         res = 0
         for el in x:
             res = (res + self.reverse(el)) % mod
@@ -63,18 +66,18 @@ class Stb:
 
     # Encrypt input m represented as list of bytes using key represented as list of bytes
     def encrypt_block(self, m):
-        a, b, c, d = [self.list2int(m[i:i+4]) for i in range(0, len(m), 4)]
+        a, b, c, d = [self.list2int(m[i:i + 4]) for i in range(0, len(m), 4)]
         for i in range(8):
-            b = b ^ self.gtransformation(self.modadd(a, self.k[7*i+0]), 5)
-            c = c ^ self.gtransformation(self.modadd(d, self.k[7*i+1]), 21)
+            b = b ^ self.gtransformation(self.modadd(a, self.k[7 * i + 0]), 5)
+            c = c ^ self.gtransformation(self.modadd(d, self.k[7 * i + 1]), 21)
             a = self.reverse(self.modsub(self.reverse(a),
-                                         self.reverse(self.gtransformation(self.modadd(b, self.k[7*i+2]), 13))))
-            e = (self.gtransformation(self.modadd(b, c, self.k[7*i+3]), 21)) ^ self.reverse(i+1)
+                                         self.reverse(self.gtransformation(self.modadd(b, self.k[7 * i + 2]), 13))))
+            e = (self.gtransformation(self.modadd(b, c, self.k[7 * i + 3]), 21)) ^ self.reverse(i + 1)
             b = self.modadd(b, e)
             c = self.reverse(self.modsub(self.reverse(c), self.reverse(e)))
-            d = self.modadd(d, self.gtransformation(self.modadd(c, self.k[7*i+4]), 13))
-            b = b ^ self.gtransformation(self.modadd(a, self.k[7*i+5]), 21)
-            c = c ^ self.gtransformation(self.modadd(d, self.k[7*i+6]), 5)
+            d = self.modadd(d, self.gtransformation(self.modadd(c, self.k[7 * i + 4]), 13))
+            b = b ^ self.gtransformation(self.modadd(a, self.k[7 * i + 5]), 21)
+            c = c ^ self.gtransformation(self.modadd(d, self.k[7 * i + 6]), 5)
             a, b = b, a
             c, d = d, c
             b, c = c, b
@@ -86,18 +89,18 @@ class Stb:
 
     # Decrypt input m represented as list of bytes using key represented as list of bytes
     def decrypt_block(self, m):
-        a, b, c, d = [self.list2int(m[i:i+4]) for i in range(0, len(m), 4)]
+        a, b, c, d = [self.list2int(m[i:i + 4]) for i in range(0, len(m), 4)]
         for i in reversed(range(8)):
-            b = b ^ self.gtransformation(self.modadd(a, self.k[7*i+6]), 5)
-            c = c ^ self.gtransformation(self.modadd(d, self.k[7*i+5]), 21)
+            b = b ^ self.gtransformation(self.modadd(a, self.k[7 * i + 6]), 5)
+            c = c ^ self.gtransformation(self.modadd(d, self.k[7 * i + 5]), 21)
             a = self.reverse(self.modsub(self.reverse(a),
-                                         self.reverse(self.gtransformation(self.modadd(b, self.k[7*i+4]), 13))))
-            e = (self.gtransformation(self.modadd(b, c, self.k[7*i+3]), 21)) ^ self.reverse(i+1)
+                                         self.reverse(self.gtransformation(self.modadd(b, self.k[7 * i + 4]), 13))))
+            e = (self.gtransformation(self.modadd(b, c, self.k[7 * i + 3]), 21)) ^ self.reverse(i + 1)
             b = self.modadd(b, e)
             c = self.reverse(self.modsub(self.reverse(c), self.reverse(e)))
-            d = self.modadd(d, self.gtransformation(self.modadd(c, self.k[7*i+2]), 13))
-            b = b ^ self.gtransformation(self.modadd(a, self.k[7*i+1]), 21)
-            c = c ^ self.gtransformation(self.modadd(d, self.k[7*i+0]), 5)
+            d = self.modadd(d, self.gtransformation(self.modadd(c, self.k[7 * i + 2]), 13))
+            b = b ^ self.gtransformation(self.modadd(a, self.k[7 * i + 1]), 21)
+            c = c ^ self.gtransformation(self.modadd(d, self.k[7 * i + 0]), 5)
             a, b = b, a
             c, d = d, c
             a, d = d, a
@@ -107,8 +110,83 @@ class Stb:
         d = self.int2list(d)
         return c + a + d + b
 
-    def encrypt(self, data: str) -> str:
-        pass
+    def uft8_to_list_of_bytes(self, text: str) -> list:
+        return list(text.encode('utf8'))
 
-    def decrypt(self, encrypted_data: str) -> str:
-        pass
+    def list_of_bytes_to_uft8(self, bytes: list) -> str:
+        return bytearray(bytes).decode('utf8')
+
+    def encrypted_list_of_bytes_to_utf8(self, bytes: list) -> str:
+        return binascii.hexlify(bytearray(bytes)).decode('utf8')
+
+    def encrypted_text_to_list_of_bytes(self, text: str) -> list:
+        return list(binascii.unhexlify(text))
+
+    def break_into_blocks(self, data: list) -> list:
+        size = len(data)
+        num_of_full_blocks = size // self.block_size_in_bytes
+        bsize = self.block_size_in_bytes
+        blocks = [data[i:i + bsize:1] for i in range(0, num_of_full_blocks * bsize, bsize)]
+
+        size_of_last_block = size % self.block_size_in_bytes
+        if size_of_last_block != 0:
+            blocks.append(data[-size_of_last_block::])
+        return blocks
+
+    def merge_blocks(self, blocks: list) -> list:
+        data = []
+        for b in blocks:
+            data += b
+        return data
+
+    def encrypt(self, data_to_encrypt: str) -> str:
+        data = self.uft8_to_list_of_bytes(data_to_encrypt)  # TODO: Raise exception if data < 128
+        print("Data:", data)
+        blocks = self.break_into_blocks(data)
+        print("Blocks: ", blocks)
+
+        r_size = self.block_size_in_bytes - len(blocks[-1])
+        is_last_block_full = r_size == 0
+        n = len(blocks) if is_last_block_full else len(blocks) - 2
+        encrypted_blocks = []
+        for i in range(0, n):
+            encrypted_blocks.append(self.encrypt_block(blocks[i]))
+
+        if not is_last_block_full:
+            y_n_and_r = self.encrypt_block(blocks[-2])
+            y_n = y_n_and_r[:self.block_size_in_bytes - r_size:]
+            r = y_n_and_r[-r_size::]
+            y_n_min_one = self.encrypt_block(blocks[-1] + r)
+            encrypted_blocks.append(y_n_min_one)
+            encrypted_blocks.append(y_n)
+
+        encrypted_data = self.merge_blocks(encrypted_blocks)
+        encrypted_str = self.encrypted_list_of_bytes_to_utf8(encrypted_data)
+        print("Enctypted str:", encrypted_str)
+        return encrypted_str
+
+    def decrypt(self, data_to_encrypt: str) -> str:
+        data = self.encrypted_text_to_list_of_bytes(data_to_encrypt)  # TODO: Raise exception if data < 128
+        print("Data:", data)
+        blocks = self.break_into_blocks(data)
+        print("Blocks: ", blocks)
+
+        r_size = self.block_size_in_bytes - len(blocks[-1])
+        is_last_block_full = r_size == 0
+        n = len(blocks) if is_last_block_full else len(blocks) - 2
+        decrypted_blocks = []
+        for i in range(0, n):
+            decrypted_blocks.append(self.decrypt_block(blocks[i]))
+
+        if not is_last_block_full:
+            y_n_and_r = self.decrypt_block(blocks[-2])
+            y_n = y_n_and_r[:self.block_size_in_bytes - r_size:]
+            r = y_n_and_r[-r_size::]
+            y_n_min_one = self.decrypt_block(blocks[-1] + r)
+            decrypted_blocks.append(y_n_min_one)
+            decrypted_blocks.append(y_n)
+
+        decrypted_data = self.merge_blocks(decrypted_blocks)
+        encrypted_str = self.list_of_bytes_to_uft8(decrypted_data)
+        print("Decrypted str:", encrypted_str)
+        return encrypted_str
