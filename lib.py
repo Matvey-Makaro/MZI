@@ -1,5 +1,6 @@
 import binascii
 
+
 def join_64bits(text):
     crypted_text = 0
     for i in reversed(range(len(text))):
@@ -8,14 +9,25 @@ def join_64bits(text):
             crypted_text = crypted_text << 64
     return crypted_text
 
+
 def hexToUtf8(text):
-    text = binascii.unhexlify(text).decode('utf8')
-    text = text.replace('\x00', '')
+    unx = binascii.unhexlify(text)
+    unx = bytearray(filter(lambda x: x != 0x00, unx))
+    # unx = str(unx).replace('\\x00', '')
+    # unx = bytearray(unx, 'utf8')
+    res = unx.decode('utf8')
+    text = res
+    # text = binascii.unhexlify(text.encode('utf8'))
+
     return text
 
 
 def utf8ToHex(text):
-    text = binascii.hexlify(text.encode('utf8')).decode('utf8')
+    enc = text.encode('utf8')
+    hex = binascii.hexlify(enc)
+    text = hex
+    # text = binascii.hexlify(text.encode('utf8')).decode('utf8')
+    print("utf8toHex text:", text)
     return text
 
 
